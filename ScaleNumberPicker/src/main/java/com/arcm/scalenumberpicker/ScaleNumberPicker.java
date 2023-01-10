@@ -17,6 +17,12 @@ import android.view.animation.DecelerateInterpolator;
 
 import androidx.annotation.Nullable;
 
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpdateListener {
     public static final String TAG = "ScaleNumberPicker";
     public final int DEFSTYLE_RES = R.style.ScaleNumberPicker;
@@ -46,6 +52,28 @@ public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpd
     private final int MAX_SPEED;
     private final int MIN_SPEED;
     private int sweepRange;
+
+    private ScheduledExecutorService timer;
+    private boolean isRunning = false;
+
+    public void startRepeatingTask() {
+        isRunning = true;
+        timer = Executors.newSingleThreadScheduledExecutor();
+        timer.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if (isRunning) {
+                    if (listener != null) listener.onRealTimeValueChanged(val);
+                }
+            }
+        }, 0, 200, TimeUnit.MILLISECONDS);
+    }
+
+    public void stopRepeatingTask() {
+        isRunning = false;
+        timer.shutdown();
+    }
+
 
     public ScaleNumberPicker(Context context) {
         super(context);
@@ -77,8 +105,10 @@ public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpd
         this.valueAnimator = ValueAnimator.ofFloat(attrs.minValue, attrs.maxValue);
         valueAnimator.addUpdateListener(this);
         valueAnimator.addListener(new AnimatorListenerAdapter() {
+
             @Override
             public void onAnimationEnd(Animator animation) {
+                stopRepeatingTask();
                 Log.i(TAG, "value changed: " + oldVal + " => " + val);
                 if (listener != null) listener.onValueChanged(oldVal, val);
             }
@@ -114,7 +144,7 @@ public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpd
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int desiredWidth = design.measureViewContentWidth();
         int desiredHeight = design.measureViewContentHeight();
-        
+
         if (orientation == HORIZONTAL || orientation == HORIZONTAL_CIRCULAR) {
             desiredWidth = MeasureSpec.getSize(widthMeasureSpec);
         } else desiredHeight = MeasureSpec.getSize(heightMeasureSpec);
@@ -125,7 +155,7 @@ public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpd
         int pRight = getPaddingRight();
         int pTop = getPaddingTop();
         int pBottom = getPaddingBottom();
-        
+
         int contentWidth = width - pLeft - pRight;
         int contentHeight = height - pTop - pBottom;
 
@@ -149,7 +179,7 @@ public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpd
         // MUST CALL THIS
         setMeasuredDimension(width, height);
     }
-    
+
     private int getMeasurement(int measureSpec, int desiredMeasurement) {
         int mode = MeasureSpec.getMode(measureSpec);
         int size = MeasureSpec.getSize(measureSpec);
@@ -190,6 +220,7 @@ public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpd
         } else velocityTracker.clear();
         this.dragStartX = event.getX();
         this.dragStartY = event.getY();
+        startRepeatingTask();
         velocityTracker.addMovement(event);
     }
 
@@ -264,6 +295,7 @@ public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpd
 
     public interface OnValueChangedListener {
         void onValueChanged(float oldValue, float newValue);
+        void onRealTimeValueChanged(float newValue);
     }
 
     public float getValue() {
@@ -276,7 +308,7 @@ public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpd
         invalidate();
         design.setRoundedValues(true);
     }
-    
+
     public void setOrientation(int orientation) {
         if (orientation == HORIZONTAL) {
             this.orientation = HORIZONTAL;
@@ -295,3 +327,4 @@ public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpd
         invalidate();
     }
 }
+
