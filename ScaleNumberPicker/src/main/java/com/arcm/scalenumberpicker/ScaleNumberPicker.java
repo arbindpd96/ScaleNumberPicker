@@ -24,8 +24,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class ScaleNumberPicker extends View implements ValueAnimator.AnimatorUpdateListener {
-    public static final String TAG = "ScaleNumberPicker";
+    public static final String TAG = "ScaleNumberPickeer";
     public final int DEFSTYLE_RES = R.style.ScaleNumberPicker;
+
     public static final int HORIZONTAL = 0;
     public static final int VERTICAL_LEFT = 1;
     public static final int VERTICAL_RIGHT = 2;
